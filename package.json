@@ -1,0 +1,8 @@
+{
+  "name": "esp32-s3-ble-oled",
+  "private": true,
+  "scripts": {
+    "test": "node --test miniprogram/tests/*.test.js",
+    "check:public": "node tools/check-public-files.js"
+  }
+}

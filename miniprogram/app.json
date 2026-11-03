@@ -1,0 +1,18 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "蓝牙文字屏",
+    "navigationBarBackgroundColor": "#10191a",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#10191a"
+  },
+  "permission": {
+    "scope.bluetooth": {
+      "desc": "连接你的 ESP32 OLED 屏幕并发送显示文字"
+    }
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

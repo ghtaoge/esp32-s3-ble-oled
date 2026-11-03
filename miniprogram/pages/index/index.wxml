@@ -1,0 +1,31 @@
+<view class="container">
+  <view class="eyebrow">ESP32-S3 · BLUETOOTH</view>
+  <view class="title">把话写在小屏上</view>
+  <view class="subtitle">输入一段文字，让它出现在你的 OLED 屏幕上。</view>
+  <view class="card">
+    <view class="row"><view class="card-title">{{connected ? deviceName : '连接文字屏'}}</view><text class="badge">{{connected ? '已连接' : '未连接'}}</text></view>
+    <view class="muted">{{connected ? (oledReady ? '屏幕就绪 · 128 × 64' : '未检测到屏幕，请检查接线后重启') : '给开发板供电，打开手机蓝牙后搜索'}}</view>
+    <button wx:if="{{!connected}}" class="primary" loading="{{scanning}}" disabled="{{scanning || connectingId}}" bindtap="search">{{scanning ? '正在搜索…' : '搜索开发板'}}</button>
+    <button wx:else class="secondary" disabled="{{sending}}" bindtap="disconnect">断开连接</button>
+    <button wx:for="{{devices}}" wx:key="deviceId" wx:if="{{!connected}}" class="device" data-id="{{item.deviceId}}" loading="{{connectingId === item.deviceId}}" disabled="{{!!connectingId}}" bindtap="connect">{{item.name}} · {{item.RSSI}} dBm</button>
+    <text class="link" bindtap="openSettings">蓝牙权限设置</text>
+  </view>
+  <view class="card">
+    <view class="row"><view class="card-title">想说的话</view><text class="{{byteCount > 512 ? 'over' : 'muted'}}">{{byteCount}} / 512 字节</text></view>
+    <textarea value="{{text}}" maxlength="512" placeholder="例如：你好，今天也要开心！" disabled="{{sending}}" bindinput="inputText" />
+    <view class="muted">支持常用中文、英文、数字与换行。长文本每 3 秒自动翻页，生僻字与表情可能显示为 ?。</view>
+    <button class="primary" disabled="{{!connected || !oledReady || sending || byteCount > 512}}" loading="{{sending}}" bindtap="send">{{sending ? '正在发送…' : '发送到屏幕'}}</button>
+    <button class="secondary" disabled="{{!connected || !oledReady || sending}}" bindtap="clearScreen">清空屏幕</button>
+    <view class="success" wx:if="{{syncText}}">{{syncText}}</view>
+  </view>
+  <view class="error" wx:if="{{errorText}}">{{errorText}}</view>
+  <view class="footer"><view>SDA → GPIO8 · SCL → GPIO9</view><view>VCC → 3.3V · GND → GND</view></view>
+  <view wx:if="{{showPrivacy}}" class="privacy-mask" catchtap="rejectPrivacy">
+    <view class="privacy-card" catchtap="ignorePrivacyTap">
+      <view class="card-title">连接前的小提示</view>
+      <view class="subtitle">我们使用蓝牙连接你的文字屏，文字通过蓝牙发送，不上传服务器。请阅读并同意<text class="link" bindtap="openPrivacy">{{privacyName}}</text>。</view>
+      <button id="agree-privacy" class="primary" open-type="agreePrivacyAuthorization" bindtap="preparePrivacyAgree" bindagreeprivacyauthorization="agreePrivacy" loading="{{privacyAgreePending}}">同意并继续</button>
+      <button class="secondary" bindtap="rejectPrivacy">暂不连接</button>
+    </view>
+  </view>
+</view>

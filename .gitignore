@@ -1,0 +1,33 @@
+# Generated files and local tooling
+.pio/
+.tools/
+.local/
+artifacts/
+node_modules/
+__pycache__/
+*.py[cod]
+*.log
+*.bin
+*.elf
+*.map
+*.zip
+
+# Editor and WeChat personal settings
+.vscode/
+.idea/
+**/project.private.config.json
+**/project.local.config.json
+*.code-workspace
+
+# Credentials and environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.*
+credentials.*
+.DS_Store
+Thumbs.db
