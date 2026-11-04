@@ -1,31 +1,52 @@
 <view class="container">
-  <view class="eyebrow">ESP32-S3 · BLUETOOTH</view>
-  <view class="title">把话写在小屏上</view>
-  <view class="subtitle">输入一段文字，让它出现在你的 OLED 屏幕上。</view>
-  <view class="card">
-    <view class="row"><view class="card-title">{{connected ? deviceName : '连接文字屏'}}</view><text class="badge">{{connected ? '已连接' : '未连接'}}</text></view>
-    <view class="muted">{{connected ? (oledReady ? '屏幕就绪 · 128 × 64' : '未检测到屏幕，请检查接线后重启') : '给开发板供电，打开手机蓝牙后搜索'}}</view>
-    <button wx:if="{{!connected}}" class="primary" loading="{{scanning}}" disabled="{{scanning || connectingId}}" bindtap="search">{{scanning ? '正在搜索…' : '搜索开发板'}}</button>
-    <button wx:else class="secondary" disabled="{{sending}}" bindtap="disconnect">断开连接</button>
-    <button wx:for="{{devices}}" wx:key="deviceId" wx:if="{{!connected}}" class="device" data-id="{{item.deviceId}}" loading="{{connectingId === item.deviceId}}" disabled="{{!!connectingId}}" bindtap="connect">{{item.name}} · {{item.RSSI}} dBm</button>
-    <text class="link" bindtap="openSettings">蓝牙权限设置</text>
+  <view class="page-header"><view class="eyebrow">ESP32-S3 · OLED</view><view class="title">把话写在小屏上</view></view>
+  <view class="card connection-card">
+    <view class="row section-heading"><view class="card-title">设备连接</view><text class="badge {{connected ? 'badge-online' : ''}}">{{connected ? '已连接' : '未连接'}}</text></view>
+    <block wx:if="{{!connected}}">
+      <picker class="device-picker" mode="selector" range="{{deviceOptions}}" range-key="label" value="{{deviceIndex}}" disabled="{{!!connectingId || !nearbyDevices.length}}" bindchange="selectDevice">
+        <view class="select-field"><text class="select-value">{{connectingId ? '正在连接…' : (selectedDeviceName || '请选择蓝牙设备')}}</text><text class="select-arrow">⌄</text></view>
+      </picker>
+      <view class="button-row connection-actions">
+        <button class="primary" loading="{{scanning}}" disabled="{{scanning || !!connectingId}}" bindtap="search">{{scanning ? '正在搜索…' : '搜索设备'}}</button>
+        <button wx:if="{{savedDeviceName}}" class="secondary" disabled="{{scanning || !!connectingId}}" bindtap="reconnectSaved">重连上次</button>
+      </view>
+      <view wx:if="{{scanning}}" class="hint">{{scanHint}}</view>
+      <view wx:elif="{{nearbyDevices.length}}" class="hint">找到 {{nearbyDevices.length}} 个设备，请在下拉框中选择。</view>
+      <view wx:else class="hint">给开发板供电后，点击搜索设备。</view>
+    </block>
+    <block wx:else>
+      <view class="connected-device">
+        <view class="device-info"><view class="device-name">{{deviceName}}</view><view class="hint">{{oledReady ? '屏幕就绪 · 128 × 64' : '未检测到屏幕，请检查接线后重启'}}</view></view>
+        <button class="secondary compact-button" disabled="{{sending}}" bindtap="disconnect">断开</button>
+      </view>
+    </block>
+    <view class="connection-footer"><text class="remembered">{{savedDeviceName ? '已记住设备，下次自动重连' : '成功连接后会自动记住设备'}}</text><text class="link" bindtap="openSettings">权限设置</text></view>
   </view>
-  <view class="card">
-    <view class="row"><view class="card-title">想说的话</view><text class="{{byteCount > 512 ? 'over' : 'muted'}}">{{byteCount}} / 512 字节</text></view>
-    <textarea value="{{text}}" maxlength="512" placeholder="例如：你好，今天也要开心！" disabled="{{sending}}" bindinput="inputText" />
-    <view class="muted">支持常用中文、英文、数字与换行。长文本每 3 秒自动翻页，生僻字与表情可能显示为 ?。</view>
-    <button class="primary" disabled="{{!connected || !oledReady || sending || byteCount > 512}}" loading="{{sending}}" bindtap="send">{{sending ? '正在发送…' : '发送到屏幕'}}</button>
-    <button class="secondary" disabled="{{!connected || !oledReady || sending}}" bindtap="clearScreen">清空屏幕</button>
-    <view class="success" wx:if="{{syncText}}">{{syncText}}</view>
-  </view>
-  <view class="error" wx:if="{{errorText}}">{{errorText}}</view>
-  <view class="footer"><view>SDA → GPIO8 · SCL → GPIO9</view><view>VCC → 3.3V · GND → GND</view></view>
-  <view wx:if="{{showPrivacy}}" class="privacy-mask" catchtap="rejectPrivacy">
-    <view class="privacy-card" catchtap="ignorePrivacyTap">
-      <view class="card-title">连接前的小提示</view>
-      <view class="subtitle">我们使用蓝牙连接你的文字屏，文字通过蓝牙发送，不上传服务器。请阅读并同意<text class="link" bindtap="openPrivacy">{{privacyName}}</text>。</view>
-      <button id="agree-privacy" class="primary" open-type="agreePrivacyAuthorization" bindtap="preparePrivacyAgree" bindagreeprivacyauthorization="agreePrivacy" loading="{{privacyAgreePending}}">同意并继续</button>
-      <button class="secondary" bindtap="rejectPrivacy">暂不连接</button>
+  <view class="notice error" wx:if="{{errorText}}">{{errorText}}</view>
+  <view class="card editor-card">
+    <view class="row section-heading"><view class="card-title">显示文字</view><text class="counter {{byteCount > 512 ? 'over' : ''}}">{{byteCount}} / 512 字节</text></view>
+    <textarea class="text-editor" value="{{text}}" maxlength="512" placeholder="输入你想显示的文字…" placeholder-class="input-placeholder" disabled="{{sending}}" bindinput="inputText" />
+    <view class="display-controls">
+      <view class="settings-heading">显示设置</view>
+      <view class="setting-row"><text class="control-label">字体大小</text><picker class="setting-picker" mode="selector" range="{{fontNames}}" value="{{fontScale - 1}}" disabled="{{sending}}" bindchange="chooseFont"><view class="select-field"><text class="select-value">{{fontNames[fontScale - 1]}}</text><text class="select-arrow">⌄</text></view></picker></view>
+      <view class="setting-row"><text class="control-label">显示效果</text><picker class="setting-picker" mode="selector" range="{{effectNames}}" value="{{effectIndex}}" disabled="{{sending}}" bindchange="chooseEffect"><view class="select-field"><text class="select-value">{{effectNames[effectIndex]}}</text><text class="select-arrow">⌄</text></view></picker></view>
+      <view class="setting-row"><text class="control-label">播放速度</text><picker class="setting-picker {{effectIndex === 1 ? 'picker-muted' : ''}}" mode="selector" range="{{speedNames}}" value="{{speedIndex}}" disabled="{{sending || effectIndex === 1}}" bindchange="chooseSpeed"><view class="select-field"><text class="select-value">{{effectIndex === 1 ? '静态无需播放' : speedNames[speedIndex]}}</text><text class="select-arrow">⌄</text></view></picker></view>
+      <view class="settings-note">{{fontScale >= 3 ? '特大字每页 1 行，适合短句' : (fontScale === 2 ? '大字每页 2 行' : '标准每页 4 行')}} · {{effectIndex === 1 ? '仅显示第一页' : (effectIndex === 2 ? '循环闪烁并翻页' : (effectIndex === 3 ? '逐页向上滚动' : '长文本自动翻页'))}}</view>
+      <button class="secondary apply-button" disabled="{{!connected || !oledReady || sending || !effectsSupported}}" bindtap="applyDisplay">仅更新屏幕效果</button>
+      <view wx:if="{{connected && !effectsSupported}}" class="hint">放大和动态效果需更新 ESP32 固件。</view>
     </view>
+    <view class="button-row send-actions">
+      <button class="primary send-button" disabled="{{!connected || !oledReady || sending || byteCount > 512}}" loading="{{sending}}" bindtap="send">{{sending ? '正在发送…' : '发送到屏幕'}}</button>
+      <button class="secondary clear-button" disabled="{{!connected || !oledReady || sending}}" bindtap="clearScreen">清屏</button>
+    </view>
+    <view class="hint editor-note">发送时包含上方显示设置，支持中文和换行。</view>
+    <view class="notice success" wx:if="{{syncText}}">{{syncText}}</view>
   </view>
+  <view class="footer">文字通过蓝牙发送，无需上传服务器</view>
+  <view wx:if="{{showPrivacy}}" class="privacy-mask" catchtap="rejectPrivacy"><view class="privacy-card" catchtap="ignorePrivacyTap">
+    <view class="card-title">连接前的小提示</view>
+    <view class="privacy-copy">我们使用蓝牙连接你的文字屏，文字通过蓝牙发送，不上传服务器。请阅读并同意<text class="link" bindtap="openPrivacy">{{privacyName}}</text>。</view>
+    <button id="agree-privacy" class="primary" open-type="agreePrivacyAuthorization" bindtap="preparePrivacyAgree" bindagreeprivacyauthorization="agreePrivacy" loading="{{privacyAgreePending}}">同意并继续</button>
+    <button class="secondary privacy-cancel" bindtap="rejectPrivacy">暂不连接</button>
+  </view></view>
 </view>

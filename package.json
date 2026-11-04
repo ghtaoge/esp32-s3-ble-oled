@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "test": "node --test miniprogram/tests/*.test.js",
+    "test:firmware": "node tools/test-firmware.js",
     "check:public": "node tools/check-public-files.js"
   }
 }

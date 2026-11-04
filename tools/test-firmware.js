@@ -1,0 +1,14 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const root = path.resolve(__dirname, '..');
+const output = path.join(root, '.local', process.platform === 'win32' ? 'display-test.exe' : 'display-test');
+fs.mkdirSync(path.dirname(output), { recursive: true });
+const build = spawnSync(process.env.CXX || 'g++', ['-std=c++11', '-Wall', '-Wextra', '-Werror', '-I', 'include', 'tests/display_test.cpp', '-o', output], { cwd: root, encoding: 'utf8' });
+if (build.error) throw build.error;
+process.stdout.write(build.stdout || ''); process.stderr.write(build.stderr || '');
+if (build.status !== 0) process.exit(build.status || 1);
+const run = spawnSync(output, [], { cwd: root, encoding: 'utf8' });
+if (run.error) throw run.error;
+process.stdout.write(run.stdout || ''); process.stderr.write(run.stderr || '');
+process.exit(run.status === null ? 1 : run.status);

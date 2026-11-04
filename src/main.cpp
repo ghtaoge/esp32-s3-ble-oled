@@ -11,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "protocol.h"
+#include "display.h"
 
 namespace {
 constexpr char Service[] = "b82c0001-6d6a-4b2e-ae8b-3d80b18a5100";
@@ -25,14 +26,17 @@ struct Packet { uint32_t epoch; uint8_t size; uint8_t data[20]; };
 oled::Receiver receiver;
 char shown[oled::MaxText + 1] = {};
 uint16_t pageStarts[oled::MaxText + 2] = {};
-uint16_t pages = 1, page = 0;
+uint16_t pages = 1;
+oled::DisplaySettings settings;
+oled::Animation animation;
+uint8_t frame[oled::FrameBytes], nextFrame[oled::FrameBytes];
 bool oledReady = false;
-uint32_t pageAt = 0, transferAt = 0;
+uint32_t transferAt = 0;
 
 uint16_t glyph(uint32_t cp) {
   return cp <= 0xFFFF && u8g2_IsGlyph(display.getU8g2(), static_cast<uint16_t>(cp)) ? cp : '?';
 }
-// Use the same layout pass for page boundaries and drawing, with 4 x 16px lines.
+// Paginate in logical pixels; the completed frame is magnified afterward.
 size_t layout(size_t start, bool draw) {
   const size_t size = strlen(shown);
   size_t offset = start;
@@ -42,30 +46,37 @@ size_t layout(size_t start, bool draw) {
     if (!oled::decode(shown, size, offset, cp)) break;
     if (cp == '\n') {
       x = 0;
-      if (++row == 4) return offset;
+      if (++row == 4 / settings.scale) return offset;
       continue;
     }
     uint16_t code = glyph(cp);
     int width = u8g2_GetGlyphWidth(display.getU8g2(), code);
     if (width <= 0) width = 6;
-    if (x + width > 128) {
+    if (x + width > 128 / settings.scale) {
       x = 0;
-      if (++row == 4) return before;
+      if (++row == 4 / settings.scale) return before;
     }
     if (draw) display.drawGlyph(x, row * 16 + 13, code);
     x += width;
   }
   return offset;
 }
+void renderPage(uint16_t index, uint8_t* output) {
+  display.clearBuffer();
+  layout(pageStarts[index], true);
+  oled::scaleFrame(display.getBufferPtr(), output, settings.scale);
+}
 void render() {
   if (!oledReady) return;
-  display.clearBuffer();
-  layout(pageStarts[page], true);
+  renderPage(animation.page, frame);
+  if (settings.effect == 3 && animation.shift) {
+    renderPage((animation.page + 1) % pages, nextFrame);
+    oled::slideFrames(frame, nextFrame, display.getBufferPtr(), animation.shift);
+  } else if (!animation.visible) display.clearBuffer();
+  else memcpy(display.getBufferPtr(), frame, oled::FrameBytes);
   display.sendBuffer();
 }
-void show(const char* text) {
-  strncpy(shown, text, sizeof(shown) - 1);
-  shown[sizeof(shown) - 1] = 0;
+void paginate() {
   pages = 1; pageStarts[0] = 0;
   size_t offset = 0, size = strlen(shown);
   while (offset < size) {
@@ -74,12 +85,18 @@ void show(const char* text) {
     pageStarts[pages++] = next;
     offset = next;
   }
-  page = 0; pageAt = millis(); render();
+  animation.reset(millis()); render();
+}
+void show(const char* text) {
+  strncpy(shown, text, sizeof(shown) - 1);
+  shown[sizeof(shown) - 1] = 0;
+  paginate();
 }
 void publish(uint8_t seq, uint8_t op, uint8_t result, bool notify = true) {
   uint8_t bytes[] = {0x5A, 1, seq, op, result,
-    static_cast<uint8_t>(receiver.received), static_cast<uint8_t>(receiver.received >> 8),
-    static_cast<uint8_t>(oledReady), static_cast<uint8_t>(pages), static_cast<uint8_t>(pages >> 8)};
+    static_cast<uint8_t>(op == 4 ? 0 : receiver.received), static_cast<uint8_t>(op == 4 ? 0 : receiver.received >> 8),
+    static_cast<uint8_t>(oledReady), static_cast<uint8_t>(pages), static_cast<uint8_t>(pages >> 8),
+    2, settings.scale, settings.effect, static_cast<uint8_t>(settings.interval), static_cast<uint8_t>(settings.interval >> 8)};
   status->setValue(bytes, sizeof(bytes));
   if (notify && connected.load()) status->notify();
   // A later read reports readiness, never a previous command's error.
@@ -160,15 +177,21 @@ void loop() {
   Packet packet;
   if (xQueueReceive(queue, &packet, 0) == pdTRUE && packet.epoch == currentEpoch && connected.load()) {
     transferAt = millis();
-    uint8_t result = receiver.accept(packet.data, packet.size);
+    uint8_t result;
+    if (packet.data[3] == 4) {
+      oled::DisplaySettings candidate = settings;
+      result = oled::parseSettings(packet.data, packet.size, candidate);
+      if (!result && !oledReady) result = 5;
+      // A valid configuration starts a fresh operation, permitting immediate
+      // retry after an interrupted text transfer without committing its bytes.
+      if (!result) { receiver.reset(); settings = candidate; paginate(); }
+    } else result = receiver.accept(packet.data, packet.size);
     if (result == 0 && packet.data[3] == 3) {
       if (!oledReady) result = 5;
       else { show(receiver.bytes); Serial.printf("DISPLAY bytes=%u pages=%u\n", receiver.total, pages); }
     }
     publish(packet.data[2], packet.data[3], result);
   }
-  if (pages > 1 && millis() - pageAt >= 3000) {
-    page = (page + 1) % pages; pageAt = millis(); render();
-  }
+  if (oledReady && animation.tick(millis(), pages, settings)) render();
   delay(2);
 }

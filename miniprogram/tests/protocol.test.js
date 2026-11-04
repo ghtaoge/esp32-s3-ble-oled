@@ -39,3 +39,31 @@ test('status decoding checks envelope and OLED readiness', () => {
   });
   assert.throws(() => p.decode(new ArrayBuffer(3)));
 });
+
+test('display settings encode a bounded BLE packet and reject invalid controls', () => {
+  const config = p.settingsPacket({ scale: 2, effect: 3, interval: 3000 });
+  assert.deepEqual(Array.from(config), [0xA5,1,0,4,0,0,0,0,2,3,0xB8,0x0B]);
+  for (const patch of [{ scale: 5 }, { scale: 1.5 }, { effect: 4 }, { effect: 0.5 }, { interval: 499 }, { interval: 10001 }, { interval: NaN }]) {
+    assert.throws(() => p.settingsPacket({ scale: 1, effect: 0, interval: 3000, ...patch }));
+  }
+});
+
+test('four font sizes encode correctly and capability version 2 advertises the new sizes', () => {
+  for (const scale of [1, 2, 3, 4]) {
+    assert.equal(p.settingsPacket({ scale, effect: 0, interval: 3000 })[8], scale);
+    const bytes = new Uint8Array([0x5A,1,7,4,0,0,0,1,6,0,2,scale,0,0xB8,0x0B]);
+    const state = p.decode(bytes.buffer).state;
+    assert.equal(state.maxFontScale, 4);
+    assert.equal(state.display.scale, scale);
+  }
+});
+
+test('extended status reports display capability and validates settings', () => {
+  const bytes = new Uint8Array([0x5A,1,7,4,0,0,0,1,6,0,1,2,3,0xB8,0x0B]);
+  const state = p.decode(bytes.buffer).state;
+  assert.equal(state.effectsSupported, true);
+  assert.deepEqual(state.display, { scale: 2, effect: 3, interval: 3000 });
+  assert.equal(state.pages, 6);
+  bytes[11] = 3;
+  assert.throws(() => p.decode(bytes.buffer));
+});

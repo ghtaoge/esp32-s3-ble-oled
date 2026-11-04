@@ -1,23 +1,57 @@
 page { background: #10191a; color: #eef7f3; font-size: 28rpx; }
-button { border-radius: 18rpx; font-size: 28rpx; margin-top: 20rpx; }
+view, text, button, textarea, picker { box-sizing: border-box; }
+button { display: block; width: 100%; height: 80rpx; padding: 0 18rpx; margin: 0; border-radius: 14rpx; font-size: 27rpx; font-weight: 500; line-height: 80rpx; white-space: nowrap; }
 button::after { border: none; }
-button[disabled] { opacity: .45; }
-.container { padding: 56rpx 32rpx; }
-.eyebrow { color: #a6debf; font-size: 22rpx; letter-spacing: 3rpx; }
-.title { font-size: 48rpx; font-weight: 700; margin-top: 18rpx; }
-.subtitle { color: #adbfba; line-height: 1.8; margin: 20rpx 0 30rpx; }
-.card { background: #1c2929; border: 1rpx solid #344441; padding: 30rpx; border-radius: 26rpx; margin-top: 28rpx; }
-.row { display: flex; justify-content: space-between; align-items: center; gap: 12rpx; }
-.card-title { font-size: 31rpx; font-weight: 600; }
-.muted { color: #adbfba; font-size: 24rpx; line-height: 1.8; margin-top: 14rpx; }
-.badge { color: #a6debf; font-size: 22rpx; white-space: nowrap; }
+.container { width: 100%; max-width: 860rpx; margin: 0 auto; padding: 28rpx 28rpx 32rpx; padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
+.page-header { padding: 4rpx 4rpx 6rpx; }
+.eyebrow { color: #91bfa5; font-size: 20rpx; letter-spacing: 3rpx; }
+.title { margin-top: 10rpx; font-size: 38rpx; font-weight: 600; line-height: 1.35; }
+.card { padding: 26rpx; margin-top: 22rpx; background: #1c2929; border: 1rpx solid #344441; border-radius: 22rpx; }
+.row { display: flex; align-items: center; justify-content: space-between; }
+.section-heading { margin-bottom: 20rpx; }
+.card-title { min-width: 0; font-size: 29rpx; font-weight: 600; line-height: 1.4; }
+.badge { flex-shrink: 0; margin-left: 16rpx; padding: 5rpx 14rpx; color: #adbfba; background: #30403d; border-radius: 20rpx; font-size: 21rpx; line-height: 1.4; }
+.badge-online { background: #284b39; color: #b5edcb; }
 .primary { background: #b5edcb; color: #10291d; font-weight: 600; }
-.secondary, .device { background: #30423e; color: #e4f3eb; }
-.link { color: #b5edcb; display: inline-block; margin-top: 20rpx; font-size: 24rpx; }
-textarea { box-sizing: border-box; width: 100%; height: 270rpx; padding: 24rpx; margin-top: 24rpx; background: #10191a; border-radius: 16rpx; color: #eef7f3; line-height: 1.6; }
-.error, .over { color: #ffb5a7; }
-.error { padding: 24rpx; line-height: 1.7; }
-.success { margin-top: 20rpx; color: #b5edcb; }
-.footer { text-align: center; color: #91aaa0; font-size: 24rpx; line-height: 1.9; margin-top: 36rpx; }
-.privacy-mask { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.privacy-card { width: 580rpx; box-sizing: border-box; padding: 36rpx; border-radius: 24rpx; background: #1c2929; }
+.secondary { background: #30423e; color: #d7e9e0; }
+.button-row { display: flex; align-items: center; width: 100%; }
+.button-row > button { flex: 1; min-width: 0; width: 0; }
+.button-row > button + button { margin-left: 16rpx; }
+.connection-actions { margin-top: 16rpx; }
+.device-picker, .setting-picker { display: block; min-width: 0; }
+.select-field { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 76rpx; padding: 0 20rpx; border: 1rpx solid #496258; border-radius: 12rpx; background: #121e1c; }
+.select-value { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 26rpx; line-height: 1.5; }
+.select-arrow { flex-shrink: 0; width: 28rpx; margin-left: 12rpx; color: #a6debf; text-align: right; font-size: 28rpx; }
+.hint { margin-top: 12rpx; color: #9eafa9; font-size: 22rpx; line-height: 1.6; overflow-wrap: break-word; }
+.connection-footer { display: flex; align-items: flex-start; justify-content: space-between; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid #344441; font-size: 21rpx; line-height: 1.6; }
+.remembered { flex: 1; min-width: 0; color: #91a69c; }
+.link { color: #b5edcb; }
+.connection-footer .link { flex-shrink: 0; margin-left: 16rpx; }
+.connected-device { display: flex; align-items: center; justify-content: space-between; }
+.device-info { flex: 1; min-width: 0; }
+.device-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 28rpx; }
+.compact-button { flex-shrink: 0; width: 116rpx; height: 64rpx; margin-left: 20rpx; font-size: 24rpx; line-height: 64rpx; }
+.counter { flex-shrink: 0; margin-left: 12rpx; color: #9eafa9; font-size: 22rpx; }
+.text-editor { display: block; width: 100%; height: 180rpx; padding: 20rpx; border-radius: 14rpx; background: #10191a; color: #eef7f3; font-size: 29rpx; line-height: 1.65; }
+.input-placeholder { color: #6e8980; }
+.display-controls { margin-top: 24rpx; padding-top: 22rpx; border-top: 1rpx solid #344441; }
+.settings-heading { margin-bottom: 4rpx; color: #d6e4df; font-size: 25rpx; font-weight: 500; }
+.setting-row { display: flex; align-items: center; width: 100%; margin-top: 14rpx; }
+.control-label { flex-shrink: 0; width: 136rpx; padding-right: 12rpx; color: #adbfba; font-size: 25rpx; line-height: 1.5; }
+.setting-picker { flex: 1; width: 0; }
+.picker-muted { opacity: .5; }
+.settings-note { margin-top: 14rpx; color: #91a69c; font-size: 21rpx; line-height: 1.6; }
+.apply-button { height: 64rpx; margin-top: 16rpx; font-size: 24rpx; line-height: 64rpx; }
+.send-actions { margin-top: 24rpx; padding-top: 22rpx; border-top: 1rpx solid #344441; }
+.send-actions .send-button { flex: 3; }
+.send-actions .clear-button { flex: 1; }
+.editor-note { text-align: center; }
+.notice { padding: 18rpx 22rpx; border-radius: 14rpx; font-size: 24rpx; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.error { margin-top: 18rpx; color: #ffb5a7; background: #352726; border: 1rpx solid #63413c; }
+.over { color: #ffb5a7; }
+.success { margin-top: 16rpx; color: #b5edcb; background: #203f30; }
+.footer { padding: 24rpx 12rpx 0; text-align: center; color: #789187; font-size: 21rpx; line-height: 1.5; }
+.privacy-mask { position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 40rpx; background: rgba(0,0,0,.75); }
+.privacy-card { width: 100%; max-width: 620rpx; padding: 32rpx; border: 1rpx solid #344441; border-radius: 24rpx; background: #1c2929; }
+.privacy-copy { margin: 20rpx 0 28rpx; color: #adbfba; font-size: 25rpx; line-height: 1.8; }
+.privacy-cancel { margin-top: 16rpx; }

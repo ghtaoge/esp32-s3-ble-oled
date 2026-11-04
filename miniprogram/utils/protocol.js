@@ -30,8 +30,22 @@ function packets(text) {
 }
 function decode(buffer) {
   const b = new Uint8Array(buffer);
-  if (b.length !== 10 || b[0] !== 0x5A || b[1] !== 1 || b[7] > 1) throw new Error('屏幕响应格式不正确');
+  if (![10, 15].includes(b.length) || b[0] !== 0x5A || b[1] !== 1 || b[7] > 1) throw new Error('屏幕响应格式不正确');
+  const state = { oledReady: !!b[7], pages: b[8] | b[9] << 8 };
+  if (b.length === 15) {
+    if (![1, 2].includes(b[10])) throw new Error('屏幕效果协议不兼容，请更新小程序和固件');
+    state.maxFontScale = b[10] === 2 ? 4 : 2;
+    state.display = { scale: b[11], effect: b[12], interval: b[13] | b[14] << 8 };
+    settingsPacket(state.display);
+    if (state.display.scale > state.maxFontScale) throw new Error('屏幕字体响应不正确');
+    state.effectsSupported = true;
+  }
   return { sequence: b[2], op: b[3], result: b[4], received: b[5] | b[6] << 8,
-    state: { oledReady: !!b[7], pages: b[8] | b[9] << 8 } };
+    state };
 }
-module.exports = { SERVICE_UUID, WRITE_UUID, STATUS_UUID, MAX_BYTES, utf8, packets, decode };
+function settingsPacket({ scale, effect, interval }) {
+  if (![1, 2, 3, 4].includes(scale) || !Number.isInteger(effect) || effect < 0 || effect > 3 ||
+      !Number.isInteger(interval) || interval < 500 || interval > 10000) throw new Error('显示设置不正确');
+  return new Uint8Array([0xA5, 1, 0, 4, 0, 0, 0, 0, scale, effect, interval & 255, interval >> 8]);
+}
+module.exports = { SERVICE_UUID, WRITE_UUID, STATUS_UUID, MAX_BYTES, utf8, packets, settingsPacket, decode };

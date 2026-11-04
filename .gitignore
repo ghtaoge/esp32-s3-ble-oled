@@ -3,6 +3,8 @@
 .tools/
 .local/
 artifacts/
+output/playwright/
+.playwright-cli/
 node_modules/
 __pycache__/
 *.py[cod]
